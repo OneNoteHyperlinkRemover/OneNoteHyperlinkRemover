@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui"
+          onLoad="Ribbon_Load"
+          loadImage="LoadImage">
+  <ribbon>
+    <tabs>
+      <!-- 将按钮添加到 OneNote 的"开始"选项卡 -->
+      <tab idMso="TabHome">
+        <group id="HyperlinkRemoverGroup"
+               getLabel="GetGroupLabel">
+          <button id="RemoveHyperlinksBtn"
+                  onAction="OnRemoveHyperlinks"
+                  getLabel="GetButtonLabel"
+                  getScreentip="GetButtonScreentip"
+                  getSupertip="GetButtonSupertip"
+                  size="large"
+                  getImage="GetButtonImage" />
+          <toggleButton id="AutoRemoveToggle"
+                        onAction="OnToggleAutoRemove"
+                        getPressed="GetAutoRemovePressed"
+                        getLabel="GetAutoRemoveLabel"
+                        getScreentip="GetAutoRemoveScreentip"
+                        size="normal" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>

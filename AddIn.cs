@@ -2,17 +2,12 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Extensibility;
 using Microsoft.Office.Core;
 
 namespace OneNoteHyperlinkRemover
 {
-    /// <summary>
-    /// OneNote COM Add-in entry point.
-    /// Implements IDTExtensibility2 (COM add-in lifecycle) and IRibbonExtensibility (Ribbon UI).
-    /// </summary>
     [ComVisible(true)]
     [Guid("b7a3d2e1-4f6c-4a8b-9e1d-3c5f7a9b2d4e")]
     [ProgId("OneNoteHyperlinkRemover.AddIn")]
@@ -22,268 +17,169 @@ namespace OneNoteHyperlinkRemover
         private bool _autoRemoveEnabled;
         private System.Threading.Timer _autoRemoveTimer;
         private ClipboardMonitor _clipboardMonitor;
-        private static readonly string LogDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "OneNoteHyperlinkRemover");
-        private static readonly string LogFile = Path.Combine(LogDir, "addin.log");
 
         public AddIn()
         {
-            Log("=== Constructor started ===");
-            Log("Assembly location: " + Assembly.GetExecutingAssembly().Location);
-            Log("Runtime: " + Environment.Version);
-            Log("OS: " + Environment.OSVersion);
+            Logger.Log("=== Constructor started ===");
+            Logger.Log("Assembly: " + Assembly.GetExecutingAssembly().Location);
+            Logger.Log("Runtime: " + Environment.Version);
         }
 
         #region IDTExtensibility2
 
-        public void OnConnection(
-            object Application,
-            ext_ConnectMode ConnectMode,
-            object AddInInst,
-            ref Array custom)
-        {
-            Log("=== OnConnection called, ConnectMode=" + ConnectMode + " ===");
-            Log("Application type: " + (Application?.GetType().FullName ?? "null"));
-        }
+        public void OnConnection(object app, ext_ConnectMode mode, object inst, ref Array custom)
+            => Logger.Log($"=== OnConnection, mode={mode} ===");
 
-        public void OnDisconnection(ext_DisconnectMode RemoveMode, ref Array custom)
+        public void OnDisconnection(ext_DisconnectMode mode, ref Array custom)
         {
-            Log("=== OnDisconnection called, RemoveMode=" + RemoveMode + " ===");
+            Logger.Log($"=== OnDisconnection, mode={mode} ===");
             StopAutoRemove();
         }
 
-        public void OnAddInsUpdate(ref Array custom)
-        {
-            Log("OnAddInsUpdate called");
-        }
+        public void OnAddInsUpdate(ref Array custom) { }
 
         public void OnStartupComplete(ref Array custom)
         {
-            Log("=== OnStartupComplete called ===");
-            try
-            {
-                _clipboardMonitor = new ClipboardMonitor();
-                Log("ClipboardMonitor started");
-            }
-            catch (Exception ex)
-            {
-                Log("ClipboardMonitor error: " + ex.Message);
-            }
+            Logger.Log("=== OnStartupComplete ===");
+            try { _clipboardMonitor = new ClipboardMonitor(); }
+            catch (Exception ex) { Logger.Log("ClipboardMonitor error: " + ex.Message); }
         }
 
         public void OnBeginShutdown(ref Array custom)
         {
-            Log("=== OnBeginShutdown called ===");
+            Logger.Log("=== OnBeginShutdown ===");
             StopAutoRemove();
             _clipboardMonitor?.Dispose();
-            _clipboardMonitor = null;
         }
 
         #endregion
 
         #region IRibbonExtensibility
 
-        public string GetCustomUI(string RibbonID)
+        public string GetCustomUI(string ribbonId)
         {
-            Log("=== GetCustomUI called, RibbonID=" + RibbonID + " ===");
-
+            Logger.Log($"=== GetCustomUI, ribbonId={ribbonId} ===");
             try
             {
-                var asm = Assembly.GetExecutingAssembly();
-                Log("Embedded resources: " + string.Join(", ", asm.GetManifestResourceNames()));
-
-                using var stream = asm.GetManifestResourceStream("OneNoteHyperlinkRemover.Ribbon.Ribbon.xml");
+                using var stream = Assembly.GetExecutingAssembly()
+                    .GetManifestResourceStream("OneNoteHyperlinkRemover.Ribbon.Ribbon.xml");
                 if (stream != null)
                 {
                     using var reader = new StreamReader(stream);
-                    string xml = reader.ReadToEnd();
-                    Log("Ribbon XML loaded, length=" + xml.Length);
-                    return xml;
-                }
-                else
-                {
-                    Log("ERROR: Ribbon.xml resource not found!");
+                    return reader.ReadToEnd();
                 }
             }
-            catch (Exception ex)
-            {
-                Log("ERROR in GetCustomUI: " + ex);
-            }
-
+            catch (Exception ex) { Logger.Log("GetCustomUI error: " + ex); }
             return string.Empty;
         }
 
-        public void Ribbon_Load(IRibbonUI ribbonUI)
-        {
-            _ribbon = ribbonUI;
-            Log("=== Ribbon_Load called ===");
-        }
+        public void Ribbon_Load(IRibbonUI ribbon) { _ribbon = ribbon; }
 
         #endregion
 
         #region Ribbon Callbacks
 
-        public string GetGroupLabel(IRibbonControl control)
-        {
-            Log("GetGroupLabel called");
-            return "超链接工具"; // 超链接工具
-        }
-
-        public string GetButtonLabel(IRibbonControl control)
-        {
-            return "移除超链接"; // 移除超链接
-        }
-
-        public string GetButtonScreentip(IRibbonControl control)
-        {
-            return "移除当前页面的自动超链接"; // 移除当前页面的自动超链接
-        }
-
-        public string GetButtonSupertip(IRibbonControl control)
-        {
-            return "扫描当前 OneNote 页面，将自动转换的 URL 超链接恢复为纯文本。";
-        }
-
-        public string GetAutoRemoveLabel(IRibbonControl control)
-        {
-            return "自动移除"; // 自动移除
-        }
-
-        public string GetAutoRemoveScreentip(IRibbonControl control)
-        {
-            return "开启/关闭自动监控模式"; // 开启/关闭自动监控模式
-        }
-
-        public bool GetAutoRemovePressed(IRibbonControl control)
-        {
-            return _autoRemoveEnabled;
-        }
-
-        public stdole.IPictureDisp GetButtonImage(IRibbonControl control)
-        {
-            Log("GetButtonImage called");
-            try
-            {
-                var asm = Assembly.GetExecutingAssembly();
-                var stream = asm.GetManifestResourceStream("OneNoteHyperlinkRemover.Resources.RemoveLinks_32.png");
-                if (stream != null)
-                {
-                    var bmp = new System.Drawing.Bitmap(stream);
-                    return PictureConverter.Convert(bmp);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log("GetButtonImage error: " + ex.Message);
-            }
-            return null;
-        }
-
         public void OnRemoveHyperlinks(IRibbonControl control)
         {
-            Log("OnRemoveHyperlinks called");
-            try
+            Logger.Log("OnRemoveHyperlinks");
+            Execute(() =>
+            {
+                HyperlinkRemover.ClearTracking();
+                using var oneNote = new OneNoteHelper();
+                return HyperlinkRemover.RemoveHyperlinksFromCurrentPage(oneNote);
+            });
+        }
+
+        public void OnRemoveSelectionHyperlinks(IRibbonControl control)
+        {
+            Logger.Log("OnRemoveSelectionHyperlinks");
+            Execute(() =>
             {
                 using var oneNote = new OneNoteHelper();
-                int count = HyperlinkRemover.RemoveHyperlinksFromCurrentPage(oneNote);
-                Log("Removed " + count + " hyperlinks");
-            }
-            catch (Exception ex)
-            {
-                Log("OnRemoveHyperlinks error: " + ex);
-            }
+                return HyperlinkRemover.RemoveHyperlinksFromSelection(oneNote);
+            });
         }
 
         public void OnToggleAutoRemove(IRibbonControl control, bool pressed)
         {
-            Log("OnToggleAutoRemove called, pressed=" + pressed);
+            Logger.Log("OnToggleAutoRemove, pressed=" + pressed);
             _autoRemoveEnabled = pressed;
-            if (pressed)
-                StartAutoRemove();
-            else
-                StopAutoRemove();
+            if (pressed) StartAutoRemove(); else StopAutoRemove();
             _ribbon?.InvalidateControl("AutoRemoveToggle");
+        }
+
+        public bool GetAutoRemovePressed(IRibbonControl control) => _autoRemoveEnabled;
+
+        public string GetGroupLabel(IRibbonControl c) => "超链接工具";
+        public string GetButtonLabel(IRibbonControl c) => "移除超链接";
+        public string GetAutoRemoveLabel(IRibbonControl c) => "自动移除";
+
+        public stdole.IPictureDisp GetButtonImage(IRibbonControl control)
+        {
+            try
+            {
+                using var stream = Assembly.GetExecutingAssembly()
+                    .GetManifestResourceStream("OneNoteHyperlinkRemover.Resources.RemoveLinks_32.png");
+                if (stream != null)
+                    return PictureConverter.Convert(new System.Drawing.Bitmap(stream));
+            }
+            catch { }
+            return null;
         }
 
         #endregion
 
-        #region Auto-remove mode
+        #region Auto-remove
 
         private void StartAutoRemove()
         {
             if (_autoRemoveTimer != null) return;
-            _autoRemoveTimer = new System.Threading.Timer(AutoRemoveTick, null, 1000, 2000);
-            Log("Auto-remove started");
+            _autoRemoveTimer = new System.Threading.Timer(_ =>
+            {
+                try
+                {
+                    using var oneNote = new OneNoteHelper();
+                    int count = HyperlinkRemover.RemoveHyperlinksFromCurrentPage(oneNote);
+                    if (count > 0) Logger.Log("Auto-remove: " + count);
+                }
+                catch (Exception ex) { Logger.Log("Auto-remove error: " + ex.Message); }
+            }, null, 1000, 2000);
+            Logger.Log("Auto-remove started");
         }
 
         private void StopAutoRemove()
         {
-            if (_autoRemoveTimer != null)
-            {
-                _autoRemoveTimer.Dispose();
-                _autoRemoveTimer = null;
-                Log("Auto-remove stopped");
-            }
-        }
-
-        private void AutoRemoveTick(object state)
-        {
-            try
-            {
-                Log("Auto-remove tick");
-                using var oneNote = new OneNoteHelper();
-                int count = HyperlinkRemover.RemoveHyperlinksFromCurrentPage(oneNote);
-                if (count > 0)
-                    Log("Auto-remove: removed " + count);
-            }
-            catch (Exception ex)
-            {
-                Log("Auto-remove tick error: " + ex.Message);
-            }
+            _autoRemoveTimer?.Dispose();
+            _autoRemoveTimer = null;
         }
 
         #endregion
 
-        #region Logging
+        #region Helpers
 
-        private static void Log(string message)
+        private void Execute(Func<int> action)
         {
             try
             {
-                if (!Directory.Exists(LogDir))
-                    Directory.CreateDirectory(LogDir);
-
-                var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}";
-                File.AppendAllText(LogFile, line);
+                int count = action();
+                Logger.Log("Removed " + count);
             }
-            catch
-            {
-                // logging should never break the add-in
-            }
+            catch (Exception ex) { Logger.Log("Error: " + ex); }
         }
 
         #endregion
     }
 
-    /// <summary>
-    /// Converts System.Drawing.Bitmap to stdole.IPictureDisp for Ribbon icons.
-    /// </summary>
     internal static class PictureConverter
     {
         public static stdole.IPictureDisp Convert(System.Drawing.Bitmap bitmap)
-        {
-            return (stdole.IPictureDisp)AxHostHelper.GetIPicture(bitmap);
-        }
+            => (stdole.IPictureDisp)AxHostHelper.GetIPicture(bitmap);
 
-        private class AxHostHelper : System.Windows.Forms.AxHost
+        private class AxHostHelper : AxHost
         {
             private AxHostHelper() : base("") { }
-
             internal static object GetIPicture(System.Drawing.Image image)
-            {
-                return GetIPictureDispFromPicture(image);
-            }
+                => GetIPictureDispFromPicture(image);
         }
     }
 }

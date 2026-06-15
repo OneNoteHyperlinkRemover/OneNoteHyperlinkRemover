@@ -2,192 +2,186 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
+using Microsoft.Office.Interop.OneNote;
 
 namespace OneNoteHyperlinkRemover
 {
     internal static class HyperlinkRemover
     {
-        // Match any <a> tag where href contains :// (any protocol)
-        // Group 1: full href, Group 2: display text
-        private static readonly Regex AnyHyperlinkPattern = new(
-            @"<a\s+href=""([^""]*://[^""]*)"">([^<]*)</a>",
+        // Match <a> tag with :// in href, supports nested <span> tags
+        // Groups: 1=href, 2=openTags, 3=text, 4=closeTags
+        private static readonly Regex LinkPattern = new(
+            @"<a\s+href=""([^""]*://[^""]*)"">((?:<[^>]+>)*)([^<]*)((?:</[^>]+>)*)</a>",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
+        private static readonly XNamespace Ns =
+            XNamespace.Get(OneNoteHelper.OneNoteNamespace);
+
         // Track removed URLs per page to avoid infinite loop
-        // (OneNote re-converts URLs after UpdatePageContent)
         private static readonly Dictionary<string, HashSet<string>> _removedUrls = new();
 
-        private static void Log(string msg)
-        {
-            try
-            {
-                var path = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "OneNoteHyperlinkRemover", "addin.log");
-                System.IO.File.AppendAllText(path,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [HyperlinkRemover] {msg}{Environment.NewLine}");
-            }
-            catch { }
-        }
+        public static void ClearTracking() => _removedUrls.Clear();
 
+        /// <summary>
+        /// Remove all auto-converted hyperlinks from the current page.
+        /// </summary>
         public static int RemoveHyperlinksFromCurrentPage(OneNoteHelper oneNote)
         {
-            string pageXml = oneNote.GetCurrentPageXml();
-            string pageId = OneNoteHelper.ExtractPageId(pageXml);
+            var (pageXml, pageId) = GetPageAndId(oneNote);
+            if (pageXml == null) return 0;
 
-            if (string.IsNullOrEmpty(pageId))
-            {
-                Log("ExtractPageId returned null/empty");
-                return 0;
-            }
-
-            // Find all auto-converted URLs on the page
             var analysis = AnalyzeHyperlinks(pageXml);
-
-            // Log all found hyperlinks for debugging
             foreach (var link in analysis.Links)
-            {
-                Log($"  Link: href=[{link.Href}] text=[{link.DisplayText}] auto={link.IsAutoConverted}");
-            }
+                Logger.Log($"  Link: href=[{link.Href}] text=[{link.DisplayText}] auto={link.IsAutoConverted}");
 
             if (analysis.AutoConvertedCount == 0)
             {
-                // No auto-converted hyperlinks, clear tracking for this page
                 _removedUrls.Remove(pageId);
                 return 0;
             }
 
-            // Get or create the set of already-removed URLs for this page
             if (!_removedUrls.TryGetValue(pageId, out var removed))
-            {
-                removed = new HashSet<string>();
-                _removedUrls[pageId] = removed;
-            }
+                _removedUrls[pageId] = removed = new HashSet<string>();
 
-            // Check if there are NEW URLs that we haven't processed yet
             var newUrls = analysis.Links
-                .Where(l => l.IsAutoConverted && !removed.Contains(l.Href))
-                .ToList();
+                .Where(l => l.IsAutoConverted && !removed.Contains(l.Href)).ToList();
 
-            if (newUrls.Count == 0)
-            {
-                // All URLs already processed, skip update to avoid infinite loop
-                return 0;
-            }
+            if (newUrls.Count == 0) return 0;
 
-            Log("PageId=" + pageId + ", newUrls=" + newUrls.Count);
+            Logger.Log($"PageId={pageId}, newUrls={newUrls.Count}");
+            foreach (var url in newUrls) removed.Add(url.Href);
 
-            // Mark these URLs as removed
-            foreach (var url in newUrls)
-                removed.Add(url.Href);
-
-            // Remove hyperlinks
-            var result = RemoveHyperlinksFromXml(pageXml);
-            Log("RemovedCount=" + result.RemovedCount);
-
-            // Debug: save modified XML to verify zero-width space
-            try
-            {
-                var debugDir = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "OneNoteHyperlinkRemover");
-                System.IO.File.WriteAllText(
-                    System.IO.Path.Combine(debugDir, "page_after.xml"), result.ModifiedXml);
-            }
-            catch { }
-
-            if (result.RemovedCount > 0)
-            {
-                // Debug: save modified XML
-                try
-                {
-                    var debugPath = System.IO.Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                        "OneNoteHyperlinkRemover", "page_after.xml");
-                    System.IO.File.WriteAllText(debugPath, result.ModifiedXml);
-                    Log("Saved modified XML to " + debugPath);
-                }
-                catch (Exception ex) { Log("Debug save error: " + ex.Message); }
-
-                Log("Calling UpdatePageContent...");
-                try
-                {
-                    oneNote.UpdatePageContent(pageId, result.ModifiedXml);
-                    Log("UpdatePageContent succeeded");
-                }
-                catch (Exception ex)
-                {
-                    Log("UpdatePageContent error: " + ex);
-                }
-            }
-
-            return result.RemovedCount;
+            return UpdatePage(oneNote, pageId, pageXml);
         }
 
-        public static (string ModifiedXml, int RemovedCount) RemoveHyperlinksFromXml(string pageXml)
+        /// <summary>
+        /// Remove hyperlinks from the current selection only.
+        /// </summary>
+        public static int RemoveHyperlinksFromSelection(OneNoteHelper oneNote)
+        {
+            var (pageXml, pageId) = GetPageAndId(oneNote);
+            if (pageXml == null) return 0;
+
+            var doc = XDocument.Parse(pageXml);
+            var root = doc.Root;
+            if (root == null) return 0;
+
+            var ns = root.GetNamespaceOfPrefix(OneNoteHelper.OneNoteNamespacePrefix) ?? Ns;
+            int total = 0;
+
+            // Find T elements with selected="all" or inside OE with selected="partial"
+            var selectedTs = root.Descendants(ns + "T")
+                .Where(t => t.Attribute("selected")?.Value == "all")
+                .Concat(root.Descendants(ns + "OE")
+                    .Where(oe => oe.Attribute("selected")?.Value == "partial")
+                    .SelectMany(oe => oe.Descendants(ns + "T")))
+                .Distinct().ToList();
+
+            Logger.Log("Selected T elements: " + selectedTs.Count);
+
+            foreach (var tElement in selectedTs)
+            {
+                foreach (var cdata in tElement.Nodes().OfType<XCData>())
+                {
+                    var (processed, count) = StripHyperlinks(cdata.Value);
+                    if (count > 0) { cdata.Value = processed; total += count; }
+                }
+            }
+
+            Logger.Log("Total hyperlinks in selection: " + total);
+
+            if (total > 0)
+                SavePage(oneNote, pageId, doc.ToString(SaveOptions.DisableFormatting));
+
+            return total;
+        }
+
+        /// <summary>
+        /// Strip hyperlinks from a CDATA string. Returns processed text and count.
+        /// </summary>
+        public static (string Processed, int Count) StripHyperlinks(string cdata)
         {
             int count = 0;
-            string result = pageXml;
-
-            // Match any <a> tag with :// in href
-            // Remove <a> tag and break URL pattern in display text
-            result = AnyHyperlinkPattern.Replace(result, match =>
+            string result = LinkPattern.Replace(cdata, match =>
             {
                 count++;
-                string displayText = match.Groups[2].Value;
-                return BreakUrlPattern(displayText);
+                string openTags = match.Groups[2].Value;
+                string text = match.Groups[3].Value;
+                string closeTags = match.Groups[4].Value;
+                return openTags + BreakUrlPattern(text) + closeTags;
             });
-
             return (result, count);
         }
 
         /// <summary>
-        /// Break URL pattern by inserting zero-width spaces at key positions:
-        /// after :// and after www. to prevent OneNote auto-conversion.
+        /// Analyze hyperlinks in page XML.
         /// </summary>
-        private static string BreakUrlPattern(string url)
-        {
-            // Insert after :// (e.g., https://​www.baidu.com)
-            string result = url.Replace("://", "://​");
-            // Insert after www. (e.g., https://www.​baidu.com)
-            result = result.Replace("www.", "www.​");
-            return result;
-        }
-
         public static HyperlinkAnalysis AnalyzeHyperlinks(string pageXml)
         {
             var analysis = new HyperlinkAnalysis();
-            var pattern = new Regex(@"<a\s+href=""([^""]*)"">([^<]*)</a>",
-                RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            var matches = pattern.Matches(pageXml);
-            foreach (Match match in matches)
+            foreach (Match match in LinkPattern.Matches(pageXml))
             {
                 string href = match.Groups[1].Value;
-                string displayText = match.Groups[2].Value;
-                // Auto-converted if display text looks like a URL
-                bool isAutoConverted = href.Contains("://") && (
-                    href == displayText ||
-                    displayText.StartsWith("http") ||
-                    displayText.StartsWith("www.") ||
-                    displayText.StartsWith("ftp") ||
-                    href.EndsWith(displayText));
-                analysis.Links.Add(new HyperlinkInfo
-                {
-                    Href = href,
-                    DisplayText = displayText,
-                    IsAutoConverted = isAutoConverted
-                });
+                string text = match.Groups[3].Value;
+                bool auto = href.Contains("://") && (
+                    href == text || text.StartsWith("http") ||
+                    text.StartsWith("www.") || text.StartsWith("ftp") ||
+                    href.EndsWith(text));
+                analysis.Links.Add(new HyperlinkInfo { Href = href, DisplayText = text, IsAutoConverted = auto });
             }
             return analysis;
         }
+
+        #region Helpers
+
+        private static (string PageXml, string PageId) GetPageAndId(OneNoteHelper oneNote)
+        {
+            string pageXml = oneNote.GetCurrentPageXml();
+            string pageId = OneNoteHelper.ExtractPageId(pageXml);
+            if (string.IsNullOrEmpty(pageId))
+            {
+                Logger.Log("ExtractPageId returned null/empty");
+                return (null, null);
+            }
+            return (pageXml, pageId);
+        }
+
+        private static int UpdatePage(OneNoteHelper oneNote, string pageId, string pageXml)
+        {
+            var (modified, count) = StripHyperlinks(pageXml);
+            Logger.Log("RemovedCount=" + count);
+
+            if (count > 0) SavePage(oneNote, pageId, modified);
+            return count;
+        }
+
+        private static void SavePage(OneNoteHelper oneNote, string pageId, string xml)
+        {
+            Logger.Log("Calling UpdatePageContent...");
+            try
+            {
+                oneNote.UpdatePageContent(pageId, xml);
+                Logger.Log("UpdatePageContent succeeded");
+            }
+            catch (Exception ex) { Logger.Log("UpdatePageContent error: " + ex); }
+        }
+
+        /// <summary>
+        /// Insert zero-width spaces at :// and www. to break URL pattern.
+        /// </summary>
+        private static string BreakUrlPattern(string url)
+        {
+            return url.Replace("://", "://​").Replace("www.", "www.​");
+        }
+
+        #endregion
     }
 
     internal class HyperlinkAnalysis
     {
         public List<HyperlinkInfo> Links { get; } = new();
-        public int TotalCount => Links.Count;
-        public int AutoConvertedCount { get { int c = 0; foreach (var l in Links) if (l.IsAutoConverted) c++; return c; } }
-        public int ManualCount { get { int c = 0; foreach (var l in Links) if (!l.IsAutoConverted) c++; return c; } }
+        public int AutoConvertedCount => Links.Count(l => l.IsAutoConverted);
     }
 
     internal class HyperlinkInfo

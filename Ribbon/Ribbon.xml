@@ -12,6 +12,12 @@
                   screentip="移除当前页面的自动超链接"
                   supertip="扫描当前 OneNote 页面，将自动转换的 URL 超链接恢复为纯文本。不会影响手动插入的超链接。"
                   size="large" />
+          <button id="RemoveSelectionHyperlinksBtn"
+                  onAction="OnRemoveSelectionHyperlinks"
+                  label="移除选区超链接"
+                  screentip="仅移除选中文字中的超链接"
+                  supertip="只处理当前选中的文字，不影响页面其他内容。"
+                  size="normal" />
           <toggleButton id="AutoRemoveToggle"
                         onAction="OnToggleAutoRemove"
                         getPressed="GetAutoRemovePressed"
@@ -22,4 +28,24 @@
       </tab>
     </tabs>
   </ribbon>
+  <contextMenus>
+    <!-- Right-click on selected text -->
+    <contextMenu idMso="ContextMenuText">
+      <button id="CtxRemoveSelectionHyperlinks"
+              onAction="OnRemoveSelectionHyperlinks"
+              label="移除选中区域超链接"
+              screentip="仅移除选中文字中的超链接" />
+      <button id="CtxRemovePageHyperlinks"
+              onAction="OnRemoveHyperlinks"
+              label="移除本页超链接"
+              screentip="移除当前页面的所有自动超链接" />
+    </contextMenu>
+    <!-- Right-click on page -->
+    <contextMenu idMso="ContextMenuPage">
+      <button id="CtxRemovePageHyperlinks2"
+              onAction="OnRemoveHyperlinks"
+              label="移除本页超链接"
+              screentip="移除当前页面的所有自动超链接" />
+    </contextMenu>
+  </contextMenus>
 </customUI>

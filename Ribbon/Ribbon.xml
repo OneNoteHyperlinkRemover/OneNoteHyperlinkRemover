@@ -1,25 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui"
-          onLoad="Ribbon_Load"
-          loadImage="LoadImage">
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui"
+          onLoad="Ribbon_Load">
   <ribbon>
     <tabs>
-      <!-- 将按钮添加到 OneNote 的"开始"选项卡 -->
       <tab idMso="TabHome">
         <group id="HyperlinkRemoverGroup"
-               getLabel="GetGroupLabel">
+               label="超链接工具">
           <button id="RemoveHyperlinksBtn"
                   onAction="OnRemoveHyperlinks"
-                  getLabel="GetButtonLabel"
-                  getScreentip="GetButtonScreentip"
-                  getSupertip="GetButtonSupertip"
-                  size="large"
-                  getImage="GetButtonImage" />
+                  label="移除超链接"
+                  screentip="移除当前页面的自动超链接"
+                  supertip="扫描当前 OneNote 页面，将自动转换的 URL 超链接恢复为纯文本。不会影响手动插入的超链接。"
+                  size="large" />
           <toggleButton id="AutoRemoveToggle"
                         onAction="OnToggleAutoRemove"
                         getPressed="GetAutoRemovePressed"
-                        getLabel="GetAutoRemoveLabel"
-                        getScreentip="GetAutoRemoveScreentip"
+                        label="自动移除"
+                        screentip="开启/关闭自动监控模式"
                         size="normal" />
         </group>
       </tab>

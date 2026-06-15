@@ -1,0 +1,13 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\OneNoteHyperlinkRemover.AddIn]
+@="OneNoteHyperlinkRemover.AddIn"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\OneNoteHyperlinkRemover.AddIn\CLSID]
+@="{b7a3d2e1-4f6c-4a8b-9e1d-3c5f7a9b2d4e}"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\OneNoteHyperlinkRemover.AddIn\CurVer]
+@="OneNoteHyperlinkRemover.AddIn"
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AppID\{b7a3d2e1-4f6c-4a8b-9e1d-3c5f7a9b2d4e}]
+"DllSurrogate"=""

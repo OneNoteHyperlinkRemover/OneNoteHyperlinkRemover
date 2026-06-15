@@ -34,7 +34,7 @@ if (-not (Test-Path $regasmPath)) {
 }
 
 Write-Host "注册 COM 组件..." -ForegroundColor Cyan
-& $regasmPath /codebase /tlb $assemblyPath
+& $regasmPath /codebase $assemblyPath
 if ($LASTEXITCODE -ne 0) {
     Write-Error "RegAsm 注册失败。"
     exit 1

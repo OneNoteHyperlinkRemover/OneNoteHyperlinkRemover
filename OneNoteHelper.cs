@@ -11,7 +11,7 @@ namespace OneNoteHyperlinkRemover
     /// </summary>
     internal sealed class OneNoteHelper : IDisposable
     {
-        private IApplication _application;
+        private Application _application;
         private bool _disposed;
 
         // OneNote 页面 XML 的命名空间前缀
@@ -25,31 +25,52 @@ namespace OneNoteHyperlinkRemover
 
         /// <summary>
         /// 获取当前活动页面的完整 XML 内容。
+        /// 通过 Windows.CurrentWindow.CurrentPageId 获取当前页面 ID。
         /// </summary>
-        /// <param name="pageInfo">要获取的页面信息详细程度</param>
-        /// <returns>页面 XML 字符串</returns>
-        public string GetCurrentPageXml(PageInfo pageInfo = pageInfo.piAll)
+        public string GetCurrentPageXml(PageInfo pageInfo = PageInfo.piAll)
         {
             ThrowIfDisposed();
 
-            // 获取当前活动页面的 ID
-            string pageId = "";
-            _application.GetHierarchy(null, hsSelf, out pageId);
+            // 通过 Windows 集合获取当前活动窗口的页面 ID（参考 OneMore）
+            string pageId = GetCurrentPageId();
+            if (string.IsNullOrEmpty(pageId))
+                throw new InvalidOperationException("无法获取当前页面 ID，请确保 OneNote 中有打开的页面。");
 
-            // 获取页面内容 XML
-            string pageXml = "";
+            string pageXml;
             _application.GetPageContent(pageId, out pageXml, pageInfo);
             return pageXml;
         }
 
         /// <summary>
+        /// 获取当前活动页面的 ID。
+        /// </summary>
+        private string GetCurrentPageId()
+        {
+            Windows windows = null;
+            Window window = null;
+            try
+            {
+                windows = _application.Windows;
+                window = windows.CurrentWindow;
+                return window?.CurrentPageId;
+            }
+            finally
+            {
+                if (window != null && Marshal.IsComObject(window))
+                    Marshal.ReleaseComObject(window);
+                if (windows != null && Marshal.IsComObject(windows))
+                    Marshal.ReleaseComObject(windows);
+            }
+        }
+
+        /// <summary>
         /// 获取指定页面的 XML 内容。
         /// </summary>
-        public string GetPageXml(string pageId, PageInfo pageInfo = pageInfo.piAll)
+        public string GetPageXml(string pageId, PageInfo pageInfo = PageInfo.piAll)
         {
             ThrowIfDisposed();
 
-            string pageXml = "";
+            string pageXml;
             _application.GetPageContent(pageId, out pageXml, pageInfo);
             return pageXml;
         }
@@ -57,14 +78,11 @@ namespace OneNoteHyperlinkRemover
         /// <summary>
         /// 将修改后的 XML 内容写回页面。
         /// </summary>
-        /// <param name="pageId">页面 ID</param>
-        /// <param name="pageXml">修改后的页面 XML</param>
         public void UpdatePageContent(string pageId, string pageXml)
         {
             ThrowIfDisposed();
 
-            // lastModified 设为当前时间，期望值设为 0 表示不检查冲突
-            _application.UpdatePageContent(pageXml, DateTime.MinValue, xsSchemaCurrent, false);
+            _application.UpdatePageContent(pageXml, DateTime.MinValue, XMLSchema.xs2013, true);
         }
 
         /// <summary>
@@ -72,7 +90,6 @@ namespace OneNoteHyperlinkRemover
         /// </summary>
         public static string ExtractPageId(string pageXml)
         {
-            // 页面 XML 的根元素是 <one:Page>，ID 属性包含页面 ID
             var doc = System.Xml.Linq.XDocument.Parse(pageXml);
             var root = doc.Root;
             if (root == null) return null;
@@ -82,16 +99,6 @@ namespace OneNoteHyperlinkRemover
 
             return root.Attribute(ns + "ID")?.Value ?? root.Attribute("ID")?.Value;
         }
-
-        #region OneNote COM 常量
-
-        // HierarchyScope
-        private const string hsSelf = "Self";
-
-        // XML Schema
-        private const XMLSchema xsSchemaCurrent = XMLSchema.xsCurrent;
-
-        #endregion
 
         #region IDisposable
 

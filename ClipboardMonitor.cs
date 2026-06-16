@@ -80,9 +80,9 @@ namespace OneNoteHyperlinkRemover
             if (!_disposed)
             {
                 _disposed = true;
-                _wake.Set(); // Wake up the thread so it can exit
-                _staThread.Join(1000); // Wait up to 1 second for clean exit
-                _wake.Dispose();
+                _wake.Set(); // Signal the thread to exit
+                // Don't Join — the thread is background and will be killed on process exit.
+                // Join blocks OneNote's shutdown and causes "cleaning up" on next launch.
             }
         }
     }

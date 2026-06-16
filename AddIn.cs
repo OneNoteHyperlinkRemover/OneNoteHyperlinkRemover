@@ -222,6 +222,7 @@ namespace OneNoteHyperlinkRemover
             {
                 try
                 {
+                    HyperlinkRemover.ClearTracking();
                     using var oneNote = new OneNoteHelper();
                     int count = HyperlinkRemover.RemoveHyperlinksFromCurrentPage(oneNote);
                     if (count > 0) Logger.Log("Auto-remove: " + count);

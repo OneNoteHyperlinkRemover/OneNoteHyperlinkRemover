@@ -1,74 +1,65 @@
 using System;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace OneNoteHyperlinkRemover
 {
     /// <summary>
-    /// Monitors clipboard on a background thread and removes zero-width spaces.
-    /// Uses System.Threading.Timer to avoid interfering with OneNote's UI thread.
+    /// Monitors clipboard on a dedicated STA thread and removes zero-width spaces.
+    /// Uses a single persistent STA thread to avoid creating threads on every tick,
+    /// ensuring clean shutdown when OneNote exits.
     /// </summary>
     internal sealed class ClipboardMonitor : IDisposable
     {
         private const string ZeroWidthSpace = "​";
-        private readonly Timer _timer;
         private string _lastText = "";
-        private bool _disposed;
+        private volatile bool _disposed;
+        private readonly Thread _staThread;
+        private readonly AutoResetEvent _wake = new(false);
 
         public ClipboardMonitor()
         {
-            _timer = new Timer(OnTick, null, 500, 500);
-            Log("ClipboardMonitor started (threading timer)");
+            _staThread = new Thread(MonitorLoop)
+            {
+                IsBackground = true,
+                Name = "ClipboardMonitor"
+            };
+            _staThread.SetApartmentState(ApartmentState.STA);
+            _staThread.Start();
+            Log("ClipboardMonitor started");
         }
 
-        private void OnTick(object state)
+        private void MonitorLoop()
         {
-            if (_disposed) return;
-
-            try
+            while (!_disposed)
             {
-                // Must use STA thread for clipboard access
-                string text = null;
-                var thread = new Thread(() =>
+                try
                 {
-                    try
+                    if (Clipboard.ContainsText())
                     {
-                        if (System.Windows.Forms.Clipboard.ContainsText())
-                            text = System.Windows.Forms.Clipboard.GetText();
+                        string text = Clipboard.GetText();
+                        if (!string.IsNullOrEmpty(text) && text != _lastText)
+                        {
+                            _lastText = text;
+                            if (text.Contains(ZeroWidthSpace))
+                            {
+                                string cleaned = text.Replace(ZeroWidthSpace, "");
+                                if (cleaned != text)
+                                {
+                                    Clipboard.SetText(cleaned);
+                                    _lastText = cleaned;
+                                    Log("RESTORED: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
+                                }
+                            }
+                        }
                     }
-                    catch { }
-                });
-                thread.SetApartmentState(ApartmentState.STA);
-                thread.Start();
-                thread.Join(200);
+                }
+                catch { }
 
-                if (string.IsNullOrEmpty(text) || text == _lastText) return;
-                _lastText = text;
-
-                if (!text.Contains(ZeroWidthSpace)) return;
-
-                string cleaned = text.Replace(ZeroWidthSpace, "");
-                if (cleaned == text) return;
-
-                // Write back on STA thread
-                var writeThread = new Thread(() =>
-                {
-                    try
-                    {
-                        System.Windows.Forms.Clipboard.SetText(cleaned);
-                    }
-                    catch { }
-                });
-                writeThread.SetApartmentState(ApartmentState.STA);
-                writeThread.Start();
-                writeThread.Join(200);
-
-                _lastText = cleaned;
-                Log("RESTORED: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
+                // Wait 500ms or until disposed
+                _wake.WaitOne(500);
             }
-            catch (Exception ex)
-            {
-                Log("Error: " + ex.Message);
-            }
+            Log("ClipboardMonitor stopped");
         }
 
         private static void Log(string msg)
@@ -89,7 +80,9 @@ namespace OneNoteHyperlinkRemover
             if (!_disposed)
             {
                 _disposed = true;
-                _timer.Dispose();
+                _wake.Set(); // Wake up the thread so it can exit
+                _staThread.Join(1000); // Wait up to 1 second for clean exit
+                _wake.Dispose();
             }
         }
     }

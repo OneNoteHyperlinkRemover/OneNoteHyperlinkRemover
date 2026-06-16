@@ -45,10 +45,16 @@ msbuild OneNoteHyperlinkRemover.sln /p:Configuration=Release
 
 Output: `bin\Release\`
 
-### Register & Install
+### Install
+
+**Option 1: MSI installer (recommended)**
+
+Download the latest `OneNoteHyperlinkRemover.msi` from [Releases](https://github.com/OneNoteHyperlinkRemover/OneNoteHyperlinkRemover/releases/latest). Requires .NET Framework 4.8. The installer copies the DLL to Program Files, registers the COM component, and adds the OneNote add-in registry entry automatically. Restart OneNote after installation.
+
+**Option 2: Manual register**
 
 ```powershell
-# Run PowerShell as Administrator
+# Build first, then run PowerShell as Administrator
 .\Scripts\Register.ps1 -Configuration Release
 ```
 
@@ -158,10 +164,16 @@ msbuild OneNoteHyperlinkRemover.sln /p:Configuration=Release
 
 编译输出在 `bin\Release\` 目录。
 
-### 注册和安装
+### 安装
+
+**方式一：MSI 安装包（推荐）**
+
+从 [Releases](https://github.com/OneNoteHyperlinkRemover/OneNoteHyperlinkRemover/releases/latest) 下载最新的 `OneNoteHyperlinkRemover.msi`。需要 .NET Framework 4.8。安装程序会自动将 DLL 复制到 Program Files、注册 COM 组件并添加 OneNote 加载项注册表项。安装后重启 OneNote 即可。
+
+**方式二：手动注册**
 
 ```powershell
-# 以管理员权限运行 PowerShell
+# 先编译，然后以管理员权限运行 PowerShell
 .\Scripts\Register.ps1 -Configuration Release
 ```
 

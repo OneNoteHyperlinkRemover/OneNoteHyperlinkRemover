@@ -142,6 +142,8 @@ The following links are the issues and discussions that inspired this project:
 - [Microsoft Q&A: How to paste plain text to OneNote](https://learn.microsoft.com/en-us/answers/questions/4805381/how-to-paste-plain-text-to-onenote?forum=msoffice-all&referrer=answers)
 - [Reddit: Hyperlinks in OneNote](https://www.reddit.com/r/OneNote/comments/1adwdh7/hyperlinks_in_on/)
 - [Microsoft Q&A: Why does the feature to remove link get disabled](https://learn.microsoft.com/en-us/answers/questions/1290065/why-does-the-feature-to-remove-link-get-disabled-f)
+- [Microsoft Q&A: How to disable automatic hyperlinks or remove link](https://learn.microsoft.com/en-us/answers/questions/4800231/how-to-disable-automatic-hyperlinks-or-remove-link)
+- [Microsoft Q&A: How can I remove a hyperlink in OneNote and preserve the text](https://learn.microsoft.com/en-us/answers/questions/5423855/how-can-i-remove-a-hyperlink-in-onenote-and-preser)
 
 ### References
 
@@ -286,6 +288,8 @@ UI 语言根据 `CultureInfo.CurrentUICulture` 自动检测。所有 Ribbon 标�
 - [Microsoft Q&A: 如何向 OneNote 粘贴纯文本](https://learn.microsoft.com/en-us/answers/questions/4805381/how-to-paste-plain-text-to-onenote?forum=msoffice-all&referrer=answers)
 - [Reddit: OneNote 中的超链接](https://www.reddit.com/r/OneNote/comments/1adwdh7/hyperlinks_in_on/)
 - [Microsoft Q&A: 为什么移除链接功能被禁用了](https://learn.microsoft.com/en-us/answers/questions/1290065/why-does-the-feature-to-remove-link-get-disabled-f)
+- [Microsoft Q&A: 如何禁用自动超链接或移除链接](https://learn.microsoft.com/en-us/answers/questions/4800231/how-to-disable-automatic-hyperlinks-or-remove-link)
+- [Microsoft Q&A: 如何在 OneNote 中移除超链接并保留文本](https://learn.microsoft.com/en-us/answers/questions/5423855/how-can-i-remove-a-hyperlink-in-onenote-and-preser)
 
 ### 参考项目
 

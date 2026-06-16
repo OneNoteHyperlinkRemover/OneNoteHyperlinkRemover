@@ -33,7 +33,9 @@ namespace OneNoteHyperlinkRemover
         {
             // key: { zh, en }
             ["TabName"]                = new[] { "超链接", "Hyperlinks" },
-            ["GroupName"]              = new[] { "超链接工具", "Hyperlink Tools" },
+            ["RemoveGroup"]            = new[] { "移除", "Remove" },
+            ["AutoRemoveGroup"]        = new[] { "自动移除", "Auto Remove" },
+            ["ClipboardGroup"]         = new[] { "剪贴板", "Clipboard" },
             ["RemovePage"]             = new[] { "移除本页超链接", "Remove Page Links" },
             ["RemovePageScreen"]       = new[] { "移除当前页面的自动超链接", "Remove auto-converted hyperlinks from the current page" },
             ["RemovePageSuper"]        = new[] { "扫描当前 OneNote 页面，将自动转换的 URL 超链接恢复为纯文本。不会影响手动插入的超链接。", "Scan the current OneNote page and restore auto-converted URL hyperlinks to plain text. Manually inserted hyperlinks are preserved." },

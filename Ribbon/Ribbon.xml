@@ -5,8 +5,8 @@
     <tabs>
       <tab id="HyperlinkRemoverTab"
            getLabel="GetTabLabel">
-        <group id="HyperlinkRemoverGroup"
-               getLabel="GetGroupLabel">
+        <group id="RemoveGroup"
+               getLabel="GetRemoveGroupLabel">
           <button id="RemoveHyperlinksBtn"
                   onAction="OnRemoveHyperlinks"
                   getLabel="GetRemovePageLabel"
@@ -19,12 +19,15 @@
                   getScreentip="GetRemoveSelectionScreentip"
                   getSupertip="GetRemoveSelectionSupertip"
                   size="normal" />
+        </group>
+        <group id="AutoRemoveGroup"
+               getLabel="GetAutoRemoveGroupLabel">
           <toggleButton id="AutoRemoveToggle"
                         onAction="OnToggleAutoRemove"
                         getPressed="GetAutoRemovePressed"
                         getLabel="GetAutoRemoveLabel"
                         getScreentip="GetAutoRemoveScreentip"
-                        size="normal" />
+                        size="large" />
           <editBox id="IntervalEditBox"
                    onChange="OnIntervalChange"
                    getText="GetIntervalText"
@@ -32,12 +35,15 @@
                    getScreentip="GetIntervalScreentip"
                    sizeString="999999"
                    maxLength="6" />
+        </group>
+        <group id="ClipboardGroup"
+               getLabel="GetClipboardGroupLabel">
           <toggleButton id="ClipboardToggle"
                         onAction="OnToggleClipboard"
                         getPressed="GetClipboardPressed"
                         getLabel="GetClipboardLabel"
                         getScreentip="GetClipboardScreentip"
-                        size="normal" />
+                        size="large" />
           <editBox id="ClipboardIntervalEditBox"
                    onChange="OnClipboardIntervalChange"
                    getText="GetClipboardIntervalText"

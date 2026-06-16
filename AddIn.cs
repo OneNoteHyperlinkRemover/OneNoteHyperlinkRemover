@@ -170,7 +170,9 @@ namespace OneNoteHyperlinkRemover
 
         // Labels
         public string GetTabLabel(IRibbonControl c) => Strings.Get("TabName");
-        public string GetGroupLabel(IRibbonControl c) => Strings.Get("GroupName");
+        public string GetRemoveGroupLabel(IRibbonControl c) => Strings.Get("RemoveGroup");
+        public string GetAutoRemoveGroupLabel(IRibbonControl c) => Strings.Get("AutoRemoveGroup");
+        public string GetClipboardGroupLabel(IRibbonControl c) => Strings.Get("ClipboardGroup");
         public string GetRemovePageLabel(IRibbonControl c) => Strings.Get("RemovePage");
         public string GetRemoveSelectionLabel(IRibbonControl c) => Strings.Get("RemoveSelection");
         public string GetAutoRemoveLabel(IRibbonControl c) => Strings.Get("AutoRemove");

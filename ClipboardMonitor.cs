@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
@@ -18,6 +19,12 @@ namespace OneNoteHyperlinkRemover
 
         [DllImport("user32.dll")]
         private static extern uint GetClipboardSequenceNumber();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
         private readonly Thread _thread;
         private readonly ManualResetEvent _stop = new(false);
@@ -67,6 +74,7 @@ namespace OneNoteHyperlinkRemover
                     _lastText = text;
 
                     if (!text.Contains(ZeroWidthSpace)) continue;
+                    if (!IsOneNoteForeground()) continue;
                     string cleaned = text.Replace(ZeroWidthSpace, "");
                     if (cleaned == text) continue;
 
@@ -84,6 +92,19 @@ namespace OneNoteHyperlinkRemover
                 }
                 catch { }
             }
+        }
+
+        private static bool IsOneNoteForeground()
+        {
+            try
+            {
+                IntPtr hwnd = GetForegroundWindow();
+                if (hwnd == IntPtr.Zero) return false;
+                GetWindowThreadProcessId(hwnd, out uint pid);
+                var proc = Process.GetProcessById((int)pid);
+                return proc.ProcessName.Equals("ONENOTE", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
         }
 
         private static void Log(string msg)

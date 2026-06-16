@@ -1,65 +1,67 @@
 using System;
-using System.Threading;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace OneNoteHyperlinkRemover
 {
     /// <summary>
-    /// Monitors clipboard on a dedicated STA thread and removes zero-width spaces.
-    /// Uses a single persistent STA thread to avoid creating threads on every tick,
-    /// ensuring clean shutdown when OneNote exits.
+    /// Monitors clipboard changes using AddClipboardFormatListener (event-driven, no polling).
+    /// Creates a hidden message-only window to receive WM_CLIPBOARDUPDATE messages.
     /// </summary>
-    internal sealed class ClipboardMonitor : IDisposable
+    internal sealed class ClipboardMonitor : NativeWindow, IDisposable
     {
+        private const int WM_CLIPBOARDUPDATE = 0x031D;
         private const string ZeroWidthSpace = "​";
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool AddClipboardFormatListener(IntPtr hwnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool RemoveClipboardFormatListener(IntPtr hwnd);
+
         private string _lastText = "";
-        private volatile bool _disposed;
-        private readonly Thread _staThread;
-        private readonly AutoResetEvent _wake = new(false);
+        private bool _disposed;
 
         public ClipboardMonitor()
         {
-            _staThread = new Thread(MonitorLoop)
+            // Create a message-only window
+            CreateHandle(new CreateParams
             {
-                IsBackground = true,
-                Name = "ClipboardMonitor"
-            };
-            _staThread.SetApartmentState(ApartmentState.STA);
-            _staThread.Start();
-            Log("ClipboardMonitor started");
+                Parent = (IntPtr)(-3), // HWND_MESSAGE — message-only window
+                ClassName = "ClipboardMonitorWindow"
+            });
+            AddClipboardFormatListener(Handle);
+            Log("ClipboardMonitor started (event-driven)");
         }
 
-        private void MonitorLoop()
+        protected override void WndProc(ref Message m)
         {
-            while (!_disposed)
+            if (m.Msg == WM_CLIPBOARDUPDATE)
             {
-                try
-                {
-                    if (Clipboard.ContainsText())
-                    {
-                        string text = Clipboard.GetText();
-                        if (!string.IsNullOrEmpty(text) && text != _lastText)
-                        {
-                            _lastText = text;
-                            if (text.Contains(ZeroWidthSpace))
-                            {
-                                string cleaned = text.Replace(ZeroWidthSpace, "");
-                                if (cleaned != text)
-                                {
-                                    Clipboard.SetText(cleaned);
-                                    _lastText = cleaned;
-                                    Log("RESTORED: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
-                                }
-                            }
-                        }
-                    }
-                }
-                catch { }
-
-                // Wait 500ms or until disposed
-                _wake.WaitOne(500);
+                OnClipboardUpdate();
             }
-            Log("ClipboardMonitor stopped");
+            base.WndProc(ref m);
+        }
+
+        private void OnClipboardUpdate()
+        {
+            if (_disposed) return;
+            try
+            {
+                if (!Clipboard.ContainsText()) return;
+                string text = Clipboard.GetText();
+                if (string.IsNullOrEmpty(text) || text == _lastText) return;
+                _lastText = text;
+
+                if (!text.Contains(ZeroWidthSpace)) return;
+                string cleaned = text.Replace(ZeroWidthSpace, "");
+                if (cleaned == text) return;
+
+                Clipboard.SetText(cleaned);
+                _lastText = cleaned;
+                Log("CLEANED: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
+            }
+            catch { }
         }
 
         private static void Log(string msg)
@@ -80,9 +82,9 @@ namespace OneNoteHyperlinkRemover
             if (!_disposed)
             {
                 _disposed = true;
-                _wake.Set(); // Signal the thread to exit
-                // Don't Join — the thread is background and will be killed on process exit.
-                // Join blocks OneNote's shutdown and causes "cleaning up" on next launch.
+                RemoveClipboardFormatListener(Handle);
+                DestroyHandle();
+                Log("ClipboardMonitor stopped");
             }
         }
     }

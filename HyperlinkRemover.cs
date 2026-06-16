@@ -9,10 +9,11 @@ namespace OneNoteHyperlinkRemover
 {
     internal static class HyperlinkRemover
     {
-        // Match <a> tag with :// in href, supports nested <span> tags
-        // Groups: 1=href, 2=openTags, 3=text, 4=closeTags
+        // Match <a> tag with :// in href
+        // Handles: <a\nhref="...">, nested <span> tags with lang attributes
+        // Groups: 1=href, 2=full inner content (including spans)
         private static readonly Regex LinkPattern = new(
-            @"<a\s+href=""([^""]*://[^""]*)"">((?:<[^>]+>)*)([^<]*)((?:</[^>]+>)*)</a>",
+            @"<a[\s]+href=""([^""]*://[^""]*)"">(.*?)</a>",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         private static readonly XNamespace Ns =
@@ -108,10 +109,10 @@ namespace OneNoteHyperlinkRemover
             string result = LinkPattern.Replace(cdata, match =>
             {
                 count++;
-                string openTags = match.Groups[2].Value;
-                string text = match.Groups[3].Value;
-                string closeTags = match.Groups[4].Value;
-                return openTags + BreakUrlPattern(text) + closeTags;
+                string innerContent = match.Groups[2].Value;
+                // Strip all HTML tags to get plain text
+                string plainText = Regex.Replace(innerContent, "<[^>]+>", "");
+                return BreakUrlPattern(plainText);
             });
             return (result, count);
         }
@@ -164,7 +165,8 @@ namespace OneNoteHyperlinkRemover
             foreach (Match match in LinkPattern.Matches(pageXml))
             {
                 string href = match.Groups[1].Value;
-                string text = match.Groups[3].Value;
+                string innerContent = match.Groups[2].Value;
+                string text = Regex.Replace(innerContent, "<[^>]+>", "");
                 bool auto = href.Contains("://") && (
                     href == text || text.StartsWith("http") ||
                     text.StartsWith("www.") || text.StartsWith("ftp") ||

@@ -21,12 +21,14 @@ namespace OneNoteHyperlinkRemover
 
         private readonly Thread _thread;
         private readonly ManualResetEvent _stop = new(false);
+        private readonly int _interval;
         private uint _lastSeq;
         private string _lastText = "";
         private bool _disposed;
 
-        public ClipboardMonitor()
+        public ClipboardMonitor(int intervalMs = 300)
         {
+            _interval = Math.Max(100, intervalMs);
             _lastSeq = GetClipboardSequenceNumber();
             _thread = new Thread(MonitorLoop)
             {
@@ -34,12 +36,12 @@ namespace OneNoteHyperlinkRemover
                 Name = "ClipboardMonitor"
             };
             _thread.Start();
-            Log("ClipboardMonitor started (sequence number polling)");
+            Log("ClipboardMonitor started (polling " + _interval + "ms)");
         }
 
         private void MonitorLoop()
         {
-            while (!_stop.WaitOne(300))
+            while (!_stop.WaitOne(_interval))
             {
                 try
                 {

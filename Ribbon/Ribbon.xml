@@ -37,6 +37,13 @@
                         getLabel="GetClipboardLabel"
                         getScreentip="GetClipboardScreentip"
                         size="normal" />
+          <editBox id="ClipboardIntervalEditBox"
+                   onChange="OnClipboardIntervalChange"
+                   getText="GetClipboardIntervalText"
+                   getLabel="GetClipboardIntervalLabel"
+                   getScreentip="GetClipboardIntervalScreentip"
+                   sizeString="999999"
+                   maxLength="6" />
         </group>
       </tab>
     </tabs>

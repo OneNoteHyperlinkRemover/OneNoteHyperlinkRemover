@@ -16,6 +16,7 @@ namespace OneNoteHyperlinkRemover
         private IRibbonUI _ribbon;
         private bool _autoRemoveEnabled;
         private bool _clipboardEnabled = false;
+        private int _clipboardInterval = 300;
         private int _autoRemoveInterval = 2000;
         private System.Threading.Timer _autoRemoveTimer;
         private ClipboardMonitor _clipboardMonitor;
@@ -127,6 +128,20 @@ namespace OneNoteHyperlinkRemover
             _ribbon?.InvalidateControl("ClipboardToggle");
         }
 
+        public void OnClipboardIntervalChange(IRibbonControl control, string text)
+        {
+            if (int.TryParse(text, out int ms) && ms >= 100)
+            {
+                _clipboardInterval = ms;
+                Logger.Log("Clipboard interval changed to " + ms + "ms");
+                if (_clipboardEnabled)
+                {
+                    StopClipboardMonitor();
+                    StartClipboardMonitor();
+                }
+            }
+        }
+
         public void OnCopyCleanText(IRibbonControl control)
         {
             Logger.Log("OnCopyCleanText");
@@ -162,6 +177,7 @@ namespace OneNoteHyperlinkRemover
         public string GetIntervalLabel(IRibbonControl c) => Strings.Get("Interval");
         public string GetClipboardLabel(IRibbonControl c) => Strings.Get("Clipboard");
         public string GetCopyCleanTextLabel(IRibbonControl c) => Strings.Get("CopyCleanText");
+        public string GetClipboardIntervalLabel(IRibbonControl c) => Strings.Get("ClipboardInterval");
 
         // Screentips
         public string GetRemovePageScreentip(IRibbonControl c) => Strings.Get("RemovePageScreen");
@@ -170,6 +186,8 @@ namespace OneNoteHyperlinkRemover
         public string GetIntervalScreentip(IRibbonControl c) => Strings.Get("IntervalScreen");
         public string GetClipboardScreentip(IRibbonControl c) => Strings.Get("ClipboardScreen");
         public string GetCopyCleanTextScreentip(IRibbonControl c) => Strings.Get("CopyCleanTextScreen");
+        public string GetClipboardIntervalScreentip(IRibbonControl c) => Strings.Get("ClipboardIntervalScreen");
+        public string GetClipboardIntervalText(IRibbonControl control) => _clipboardInterval.ToString();
 
         // Supertips
         public string GetRemovePageSupertip(IRibbonControl c) => Strings.Get("RemovePageSuper");
@@ -226,7 +244,7 @@ namespace OneNoteHyperlinkRemover
         private void StartClipboardMonitor()
         {
             if (_clipboardMonitor != null) return;
-            try { _clipboardMonitor = new ClipboardMonitor(); }
+            try { _clipboardMonitor = new ClipboardMonitor(_clipboardInterval); }
             catch (Exception ex) { Logger.Log("ClipboardMonitor error: " + ex.Message); }
         }
 

@@ -117,6 +117,20 @@ Following OneMore's design: **do not hold IApplication COM reference long-term**
 
 UI language is auto-detected from `CultureInfo.CurrentUICulture`. All Ribbon labels use `getLabel` callbacks that read from `Strings.cs`. To add a new language, extend the `Map` dictionary in `Strings.cs`.
 
+### Background
+
+The idea for this project had been on my mind for a long time, but I never got around to implementing it — until Coding Agents matured enough to make it possible with AI assistance.
+
+The following links are the issues and discussions that inspired this project:
+
+- [SuperUser: OneNote 2010 — Remove hyperlink](https://superuser.com/questions/505778/onenote-2010-remove-hyperlink)
+- [Reddit: Type a UNC path without creating a link](https://www.reddit.com/r/OneNote/comments/qla8jf/type_a_unc_path_without_creating_a_link/)
+- [Microsoft Q&A: Removing links in OneNote](https://learn.microsoft.com/en-us/answers/questions/5273901/removing-links-in-onenote)
+- [Microsoft Q&A: OneNote 2013 (zh-CN)](https://learn.microsoft.com/zh-cn/answers/questions/4874368/onenote-2013?forum=msoffice-all&referrer=answers)
+- [Microsoft Q&A: How to paste plain text to OneNote](https://learn.microsoft.com/en-us/answers/questions/4805381/how-to-paste-plain-text-to-onenote?forum=msoffice-all&referrer=answers)
+- [Reddit: Hyperlinks in OneNote](https://www.reddit.com/r/OneNote/comments/1adwdh7/hyperlinks_in_on/)
+- [Microsoft Q&A: Why does the feature to remove link get disabled](https://learn.microsoft.com/en-us/answers/questions/1290065/why-does-the-feature-to-remove-link-get-disabled-f)
+
 ### References
 
 - [OneMore](https://github.com/stevencohn/OneMore) — Feature-rich OneNote COM add-in (C#, .NET Framework 4.8)
@@ -236,6 +250,20 @@ msbuild OneNoteHyperlinkRemover.sln /p:Configuration=Release
 #### 多语言支持
 
 UI 语言根据 `CultureInfo.CurrentUICulture` 自动检测。所有 Ribbon 标签通过 `getLabel` 回调从 `Strings.cs` 读取。如需添加新语言，扩展 `Strings.cs` 中的 `Map` 字典即可。
+
+### 项目背景
+
+这个想法早就在脑海中了，只是一直没有时间去实现——直到今天 Coding Agent 发展成熟，才有机会借助 AI 将其实现。
+
+以下链接提到的问题是我创建这个项目的初衷和灵感：
+
+- [SuperUser: OneNote 2010 — 移除超链接](https://superuser.com/questions/505778/onenote-2010-remove-hyperlink)
+- [Reddit: 输入 UNC 路径时不要自动创建链接](https://www.reddit.com/r/OneNote/comments/qla8jf/type_a_unc_path_without_creating_a_link/)
+- [Microsoft Q&A: 移除 OneNote 中的链接](https://learn.microsoft.com/en-us/answers/questions/5273901/removing-links-in-onenote)
+- [Microsoft Q&A: OneNote 2013](https://learn.microsoft.com/zh-cn/answers/questions/4874368/onenote-2013?forum=msoffice-all&referrer=answers)
+- [Microsoft Q&A: 如何向 OneNote 粘贴纯文本](https://learn.microsoft.com/en-us/answers/questions/4805381/how-to-paste-plain-text-to-onenote?forum=msoffice-all&referrer=answers)
+- [Reddit: OneNote 中的超链接](https://www.reddit.com/r/OneNote/comments/1adwdh7/hyperlinks_in_on/)
+- [Microsoft Q&A: 为什么移除链接功能被禁用了](https://learn.microsoft.com/en-us/answers/questions/1290065/why-does-the-feature-to-remove-link-get-disabled-f)
 
 ### 参考项目
 

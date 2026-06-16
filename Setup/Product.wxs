@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="OneNoteHyperlinkRemover"
+           Manufacturer="OneNoteHyperlinkRemover"
+           Version="1.0.0.0"
+           UpgradeCode="{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}">
+
+    <SummaryInformation Description="OneNote COM Add-in: Remove auto-converted URL hyperlinks" />
+
+    <!-- .NET Framework 4.8 prerequisite -->
+    <Launch Condition="NETFRAMEWORK40 >= '#461808'"
+             Message="This application requires .NET Framework 4.8 or later. Please install it first." />
+
+    <!-- Upgrade logic -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+
+    <!-- Single-file cabinet -->
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Files -->
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="ManufacturerFolder" Name="OneNoteHyperlinkRemover">
+        <Directory Id="INSTALLFOLDER" Name="AddIn">
+          <Component Id="AddInDll" Guid="*">
+            <File Id="AddInDllFile"
+                  Source="$(var.SolutionDir)bin\Release\OneNoteHyperlinkRemover.dll"
+                  KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- COM Registration via RegAsm -->
+    <CustomAction Id="RegisterCom"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="[SystemFolder]..\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe &quot;[#AddInDllFile]&quot; /codebase"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+    <CustomAction Id="UnregisterCom"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand="[SystemFolder]..\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe &quot;[#AddInDllFile]&quot; /unregister"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- OneNote Add-in Registry -->
+    <Component Id="OneNoteAddInRegistry" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryKey Root="HKCU"
+                   Key="SOFTWARE\Microsoft\Office\OneNote\Addins\OneNoteHyperlinkRemover.AddIn">
+        <RegistryValue Type="integer" Name="LoadBehavior" Value="3" />
+        <RegistryValue Type="string" Name="Description" Value="Remove auto-converted URL hyperlinks" />
+        <RegistryValue Type="string" Name="FriendlyName" Value="OneNote Hyperlink Remover" />
+      </RegistryKey>
+    </Component>
+
+    <!-- Features -->
+    <Feature Id="Main" Title="OneNote Hyperlink Remover" Level="1">
+      <ComponentRef Id="AddInDll" />
+      <ComponentRef Id="OneNoteAddInRegistry" />
+    </Feature>
+
+    <!-- UI -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <!-- Install/Uninstall sequences -->
+    <InstallExecuteSequence>
+      <Custom Action="RegisterCom" After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="UnregisterCom" Before="RemoveFiles" Condition="Installed AND NOT UPGRADING" />
+    </InstallExecuteSequence>
+
+  </Package>
+</Wix>

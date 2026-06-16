@@ -64,6 +64,7 @@
     <Compile Include="HyperlinkRemover.cs" />
     <Compile Include="ClipboardMonitor.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="Strings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

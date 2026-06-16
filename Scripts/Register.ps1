@@ -14,7 +14,8 @@ param(
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$assemblyPath = Join-Path $scriptDir "bin\$Configuration\OneNoteHyperlinkRemover.dll"
+$projectDir = Split-Path -Parent $scriptDir
+$assemblyPath = Join-Path $projectDir "bin\$Configuration\OneNoteHyperlinkRemover.dll"
 $regasmPath = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"
 
 # 检查程序集是否存在

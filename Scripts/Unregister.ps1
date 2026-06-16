@@ -7,11 +7,12 @@
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectDir = Split-Path -Parent $scriptDir
 
 # 尝试 Release 和 Debug 路径
-$assemblyPath = Join-Path $scriptDir "bin\Release\OneNoteHyperlinkRemover.dll"
+$assemblyPath = Join-Path $projectDir "bin\Release\OneNoteHyperlinkRemover.dll"
 if (-not (Test-Path $assemblyPath)) {
-    $assemblyPath = Join-Path $scriptDir "bin\Debug\OneNoteHyperlinkRemover.dll"
+    $assemblyPath = Join-Path $projectDir "bin\Debug\OneNoteHyperlinkRemover.dll"
 }
 
 $regasmPath = "$env:windir\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe"

@@ -18,7 +18,7 @@ Reference project: [OneMore](https://github.com/stevencohn/OneMore) — a large-
 - **Generate icons**: `powershell -ExecutionPolicy Bypass -File Scripts\GenerateIcons.ps1`
 - **Register add-in** (admin PowerShell): `.\Scripts\Register.ps1 -Configuration Release`
 - **Unregister add-in** (admin PowerShell): `.\Scripts\Unregister.ps1`
-- **View logs** (DEBUG only): `%LOCALAPPDATA%\OneNoteHyperlinkRemover\addin.log`
+- **View logs**: `%LOCALAPPDATA%\OneNoteHyperlinkRemover\addin.log`
 
 No test framework, linter, or formatter is configured.
 
@@ -33,7 +33,7 @@ No test framework, linter, or formatter is configured.
 | `HyperlinkRemover.cs` | Core logic: parse page XML → find auto-converted `<a>` in CDATA → replace with plain text |
 | `ClipboardMonitor.cs` | Background clipboard watcher that strips zero-width spaces from copied text |
 | `Strings.cs` | Bilingual string dictionary (zh/en), auto-detected from `CultureInfo.CurrentUICulture` |
-| `Logger.cs` | Simple file logger (DEBUG builds only, compiled out in Release via `[Conditional("DEBUG")]`) |
+| `Logger.cs` | Simple file logger to `%LOCALAPPDATA%\OneNoteHyperlinkRemover\addin.log` |
 | `Ribbon\Ribbon.xml` | Ribbon UI definition — all labels use `getLabel` callbacks for i18n |
 | `Properties\AssemblyInfo.cs` | Assembly metadata and COM visibility |
 

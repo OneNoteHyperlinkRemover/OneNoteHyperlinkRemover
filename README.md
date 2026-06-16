@@ -14,7 +14,7 @@ OneNote COM Add-in: Remove auto-converted URL hyperlinks.
 
 ### Features
 
-This add-in adds a dedicated **Hyperlinks** tab to the OneNote Ribbon:
+This add-in adds a dedicated **Hyperlinks** tab to the OneNote Ribbon, plus right-click context menu entries:
 
 ![tab](Assets/tab.png)
 
@@ -155,7 +155,7 @@ OneNote COM 加载项：移除 OneNote 自动将 URL 转换为超链接的行为
 
 ### 功能说明
 
-本插件在 OneNote 功能区添加了一个独立的「超链接」标签页：
+本插件在 OneNote 功能区添加了一个独立的「超链接」标签页，并在右键菜单中添加了快捷操作：
 
 ![tab](Assets/tab.png)
 

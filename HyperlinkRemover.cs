@@ -19,12 +19,7 @@ namespace OneNoteHyperlinkRemover
         private static readonly XNamespace Ns =
             XNamespace.Get(OneNoteHelper.OneNoteNamespace);
 
-        // Track removed URLs per page to avoid infinite loop
-        private static readonly Dictionary<string, HashSet<string>> _removedUrls = new();
-
         public const string ZeroWidthSpace = "​";
-
-        public static void ClearTracking() => _removedUrls.Clear();
 
         /// <summary>
         /// Remove all auto-converted hyperlinks from the current page.
@@ -39,21 +34,7 @@ namespace OneNoteHyperlinkRemover
                 Logger.Log($"  Link: href=[{link.Href}] text=[{link.DisplayText}] auto={link.IsAutoConverted}");
 
             if (analysis.AutoConvertedCount == 0)
-            {
-                _removedUrls.Remove(pageId);
                 return 0;
-            }
-
-            if (!_removedUrls.TryGetValue(pageId, out var removed))
-                _removedUrls[pageId] = removed = new HashSet<string>();
-
-            var newUrls = analysis.Links
-                .Where(l => l.IsAutoConverted && !removed.Contains(l.Href)).ToList();
-
-            if (newUrls.Count == 0) return 0;
-
-            Logger.Log($"PageId={pageId}, newUrls={newUrls.Count}");
-            foreach (var url in newUrls) removed.Add(url.Href);
 
             return UpdatePage(oneNote, pageId, pageXml);
         }

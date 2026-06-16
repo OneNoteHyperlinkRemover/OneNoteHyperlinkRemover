@@ -22,9 +22,9 @@ namespace OneNoteHyperlinkRemover
             ["AutoRemoveScreen"]       = new[] { "开启/关闭自动监控模式", "Toggle automatic hyperlink removal" },
             ["Interval"]               = new[] { "间隔(ms)", "Interval(ms)" },
             ["IntervalScreen"]         = new[] { "自动扫描间隔（毫秒）", "Auto-scan interval (milliseconds)" },
-            ["Clipboard"]              = new[] { "剪贴板监控", "Clipboard Monitor" },
+            ["Clipboard"]              = new[] { "自动清理剪贴板零宽空格", "Auto-clean Clipboard ZWS" },
             ["ClipboardScreen"]        = new[] { "开启/关闭自动清除剪贴板中的零宽空格", "Toggle automatic zero-width space cleanup on clipboard" },
-            ["CopyCleanText"]          = new[] { "复制纯净文本", "Copy Clean Text" },
+            ["CopyCleanText"]          = new[] { "复制移除零宽空格后的文本", "Copy Text Without ZWS" },
             ["CopyCleanTextScreen"]    = new[] { "复制选中文字到剪贴板（清除零宽空格）", "Copy selected text to clipboard with zero-width spaces removed" },
         };
 

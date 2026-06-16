@@ -140,7 +140,15 @@ namespace OneNoteHyperlinkRemover
                     return;
                 }
                 string cleaned = text.Replace(HyperlinkRemover.ZeroWidthSpace, "");
-                Clipboard.SetText(cleaned);
+                // Clipboard.SetText requires STA thread
+                var thread = new System.Threading.Thread(() =>
+                {
+                    try { Clipboard.SetText(cleaned); }
+                    catch { }
+                });
+                thread.SetApartmentState(System.Threading.ApartmentState.STA);
+                thread.Start();
+                thread.Join(500);
                 Logger.Log("Copied clean text: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
             }
             catch (Exception ex) { Logger.Log("OnCopyCleanText error: " + ex); }

@@ -2,6 +2,8 @@
 
 > **[English](#english)** | **[中文](#中文)**
 
+[![VirusTotal](https://img.shields.io/badge/VirusTotal-0%20detections-brightgreen)](https://www.virustotal.com/gui/file/fc40a9a134a7df0b799b3fcf18d2336657ae36fba0328364c3a322d4cda3d3c2)
+
 ---
 
 ## English

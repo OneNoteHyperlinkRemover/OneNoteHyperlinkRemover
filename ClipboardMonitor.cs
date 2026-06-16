@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading;
 
 namespace OneNoteHyperlinkRemover
@@ -72,7 +71,6 @@ namespace OneNoteHyperlinkRemover
             }
         }
 
-        [Conditional("DEBUG")]
         private static void Log(string msg)
         {
             try

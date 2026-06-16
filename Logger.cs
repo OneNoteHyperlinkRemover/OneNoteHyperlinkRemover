@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 
 namespace OneNoteHyperlinkRemover
@@ -11,7 +10,6 @@ namespace OneNoteHyperlinkRemover
             "OneNoteHyperlinkRemover");
         private static readonly string LogFile = Path.Combine(LogDir, "addin.log");
 
-        [Conditional("DEBUG")]
         public static void Log(string message)
         {
             try

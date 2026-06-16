@@ -52,6 +52,10 @@
               onAction="OnRemoveHyperlinks"
               getLabel="GetRemovePageLabel"
               getScreentip="GetRemovePageScreentip" />
+      <button id="CtxCopyCleanText"
+              onAction="OnCopyCleanText"
+              getLabel="GetCopyCleanTextLabel"
+              getScreentip="GetCopyCleanTextScreentip" />
     </contextMenu>
     <contextMenu idMso="ContextMenuPage">
       <menuSeparator id="SepHyperlinkPageStart" />

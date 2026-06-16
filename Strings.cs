@@ -23,7 +23,9 @@ namespace OneNoteHyperlinkRemover
             ["Interval"]               = new[] { "间隔(ms)", "Interval(ms)" },
             ["IntervalScreen"]         = new[] { "自动扫描间隔（毫秒）", "Auto-scan interval (milliseconds)" },
             ["Clipboard"]              = new[] { "剪贴板监控", "Clipboard Monitor" },
-            ["ClipboardScreen"]        = new[] { "开启/关闭剪贴板零宽空格清理", "Toggle zero-width space cleanup on clipboard" },
+            ["ClipboardScreen"]        = new[] { "开启/关闭自动清除剪贴板中的零宽空格", "Toggle automatic zero-width space cleanup on clipboard" },
+            ["CopyCleanText"]          = new[] { "复制纯净文本", "Copy Clean Text" },
+            ["CopyCleanTextScreen"]    = new[] { "复制选中文字到剪贴板（清除零宽空格）", "Copy selected text to clipboard with zero-width spaces removed" },
         };
 
         public static string Get(string key)

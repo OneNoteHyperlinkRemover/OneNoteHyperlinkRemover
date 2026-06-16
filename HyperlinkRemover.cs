@@ -21,6 +21,8 @@ namespace OneNoteHyperlinkRemover
         // Track removed URLs per page to avoid infinite loop
         private static readonly Dictionary<string, HashSet<string>> _removedUrls = new();
 
+        public const string ZeroWidthSpace = "​";
+
         public static void ClearTracking() => _removedUrls.Clear();
 
         /// <summary>
@@ -112,6 +114,45 @@ namespace OneNoteHyperlinkRemover
                 return openTags + BreakUrlPattern(text) + closeTags;
             });
             return (result, count);
+        }
+
+        /// <summary>
+        /// Get selected text from the current page.
+        /// </summary>
+        public static string GetSelectedText(OneNoteHelper oneNote)
+        {
+            var (pageXml, _) = GetPageAndId(oneNote);
+            if (pageXml == null) return null;
+
+            var doc = XDocument.Parse(pageXml);
+            var root = doc.Root;
+            if (root == null) return null;
+
+            var ns = root.GetNamespaceOfPrefix(OneNoteHelper.OneNoteNamespacePrefix) ?? Ns;
+
+            var selectedTs = root.Descendants(ns + "T")
+                .Where(t => t.Attribute("selected")?.Value == "all")
+                .Concat(root.Descendants(ns + "OE")
+                    .Where(oe => oe.Attribute("selected")?.Value == "partial")
+                    .SelectMany(oe => oe.Descendants(ns + "T")))
+                .Distinct().ToList();
+
+            var parts = new List<string>();
+            foreach (var t in selectedTs)
+            {
+                foreach (var cdata in t.Nodes().OfType<XCData>())
+                {
+                    string text = StripHtmlTags(cdata.Value);
+                    if (!string.IsNullOrWhiteSpace(text))
+                        parts.Add(text);
+                }
+            }
+            return parts.Count > 0 ? string.Join(Environment.NewLine, parts) : null;
+        }
+
+        private static string StripHtmlTags(string html)
+        {
+            return Regex.Replace(html, "<[^>]+>", "");
         }
 
         /// <summary>

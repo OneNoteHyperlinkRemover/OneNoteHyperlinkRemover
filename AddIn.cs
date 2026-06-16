@@ -15,7 +15,7 @@ namespace OneNoteHyperlinkRemover
     {
         private IRibbonUI _ribbon;
         private bool _autoRemoveEnabled;
-        private bool _clipboardEnabled = true;
+        private bool _clipboardEnabled = false;
         private int _autoRemoveInterval = 2000;
         private System.Threading.Timer _autoRemoveTimer;
         private ClipboardMonitor _clipboardMonitor;
@@ -131,6 +131,25 @@ namespace OneNoteHyperlinkRemover
             _ribbon?.InvalidateControl("ClipboardToggle");
         }
 
+        public void OnCopyCleanText(IRibbonControl control)
+        {
+            Logger.Log("OnCopyCleanText");
+            try
+            {
+                using var oneNote = new OneNoteHelper();
+                string text = HyperlinkRemover.GetSelectedText(oneNote);
+                if (string.IsNullOrEmpty(text))
+                {
+                    Logger.Log("No selected text found");
+                    return;
+                }
+                string cleaned = text.Replace(HyperlinkRemover.ZeroWidthSpace, "");
+                Clipboard.SetText(cleaned);
+                Logger.Log("Copied clean text: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
+            }
+            catch (Exception ex) { Logger.Log("OnCopyCleanText error: " + ex); }
+        }
+
         // Labels
         public string GetGroupLabel(IRibbonControl c) => Strings.Get("GroupName");
         public string GetRemovePageLabel(IRibbonControl c) => Strings.Get("RemovePage");
@@ -138,6 +157,7 @@ namespace OneNoteHyperlinkRemover
         public string GetAutoRemoveLabel(IRibbonControl c) => Strings.Get("AutoRemove");
         public string GetIntervalLabel(IRibbonControl c) => Strings.Get("Interval");
         public string GetClipboardLabel(IRibbonControl c) => Strings.Get("Clipboard");
+        public string GetCopyCleanTextLabel(IRibbonControl c) => Strings.Get("CopyCleanText");
 
         // Screentips
         public string GetRemovePageScreentip(IRibbonControl c) => Strings.Get("RemovePageScreen");
@@ -145,6 +165,7 @@ namespace OneNoteHyperlinkRemover
         public string GetAutoRemoveScreentip(IRibbonControl c) => Strings.Get("AutoRemoveScreen");
         public string GetIntervalScreentip(IRibbonControl c) => Strings.Get("IntervalScreen");
         public string GetClipboardScreentip(IRibbonControl c) => Strings.Get("ClipboardScreen");
+        public string GetCopyCleanTextScreentip(IRibbonControl c) => Strings.Get("CopyCleanTextScreen");
 
         // Supertips
         public string GetRemovePageSupertip(IRibbonControl c) => Strings.Get("RemovePageSuper");

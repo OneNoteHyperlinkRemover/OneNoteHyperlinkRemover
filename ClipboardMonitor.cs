@@ -107,6 +107,7 @@ namespace OneNoteHyperlinkRemover
             catch { return false; }
         }
 
+        [Conditional("DEBUG")]
         private static void Log(string msg)
         {
             try

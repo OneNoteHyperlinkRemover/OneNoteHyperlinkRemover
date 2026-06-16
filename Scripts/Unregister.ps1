@@ -1,7 +1,7 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    注销 OneNoteHyperlinkRemover COM 加载项。
+    Unregister OneNoteHyperlinkRemover COM add-in.
 #>
 
 $ErrorActionPreference = "Stop"
@@ -9,7 +9,6 @@ $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $projectDir = Split-Path -Parent $scriptDir
 
-# 尝试 Release 和 Debug 路径
 $assemblyPath = Join-Path $projectDir "bin\Release\OneNoteHyperlinkRemover.dll"
 if (-not (Test-Path $assemblyPath)) {
     $assemblyPath = Join-Path $projectDir "bin\Debug\OneNoteHyperlinkRemover.dll"
@@ -21,17 +20,16 @@ if (-not (Test-Path $regasmPath)) {
 }
 
 if (Test-Path $assemblyPath) {
-    Write-Host "注销 COM 组件..." -ForegroundColor Cyan
+    Write-Host "Unregistering COM component..." -ForegroundColor Cyan
     & $regasmPath /unregister $assemblyPath
 }
 
-# 删除注册表项
 $addinRegPath = "HKCU:\Software\Microsoft\Office\OneNote\Addins\OneNoteHyperlinkRemover.AddIn"
 if (Test-Path $addinRegPath) {
-    Write-Host "删除注册表项..." -ForegroundColor Cyan
+    Write-Host "Removing OneNote add-in registry..." -ForegroundColor Cyan
     Remove-Item -Path $addinRegPath -Force
 }
 
 Write-Host ""
-Write-Host "注销成功！" -ForegroundColor Green
-Write-Host "请重启 OneNote 以完成卸载。" -ForegroundColor Yellow
+Write-Host "Unregistration successful!" -ForegroundColor Green
+Write-Host "Please restart OneNote to complete uninstall." -ForegroundColor Yellow

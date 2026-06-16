@@ -34,7 +34,9 @@ namespace OneNoteHyperlinkRemover
 
         public void OnDisconnection(ext_DisconnectMode mode, ref Array custom)
         {
-            Logger.Log($"=== OnDisconnection, mode={mode} ===");
+            _ribbon = null;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
 
         public void OnAddInsUpdate(ref Array custom) { }
@@ -45,10 +47,7 @@ namespace OneNoteHyperlinkRemover
             if (_clipboardEnabled) StartClipboardMonitor();
         }
 
-        public void OnBeginShutdown(ref Array custom)
-        {
-            Logger.Log("=== OnBeginShutdown ===");
-        }
+        public void OnBeginShutdown(ref Array custom) { }
 
         #endregion
 

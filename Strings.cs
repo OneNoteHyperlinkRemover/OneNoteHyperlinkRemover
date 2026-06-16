@@ -1,12 +1,33 @@
 using System.Collections.Generic;
 using System.Globalization;
+using Microsoft.Win32;
 
 namespace OneNoteHyperlinkRemover
 {
     internal static class Strings
     {
-        private static readonly bool IsChinese =
-            CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
+        private static bool IsChinese
+        {
+            get
+            {
+                // Check Office UI language first (user may set Office to English while Windows is Chinese)
+                try
+                {
+                    using var key = Registry.CurrentUser.OpenSubKey(
+                        @"Software\Microsoft\Office\16.0\Common\LanguageResources");
+                    if (key != null)
+                    {
+                        var uiLang = key.GetValue("UILanguageTag") as string;
+                        if (!string.IsNullOrEmpty(uiLang))
+                            return uiLang.StartsWith("zh", System.StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+                catch { }
+
+                // Fallback to Windows UI language
+                return CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
+            }
+        }
 
         private static readonly Dictionary<string, string[]> Map = new()
         {

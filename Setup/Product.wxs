@@ -64,6 +64,7 @@
 
     <!-- UI -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
 
     <!-- Install/Uninstall sequences -->
     <InstallExecuteSequence>

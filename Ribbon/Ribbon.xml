@@ -3,7 +3,8 @@
           onLoad="Ribbon_Load">
   <ribbon>
     <tabs>
-      <tab idMso="TabHome">
+      <tab id="HyperlinkRemoverTab"
+           getLabel="GetTabLabel">
         <group id="HyperlinkRemoverGroup"
                getLabel="GetGroupLabel">
           <button id="RemoveHyperlinksBtn"

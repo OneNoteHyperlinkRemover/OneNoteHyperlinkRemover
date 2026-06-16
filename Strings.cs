@@ -32,6 +32,7 @@ namespace OneNoteHyperlinkRemover
         private static readonly Dictionary<string, string[]> Map = new()
         {
             // key: { zh, en }
+            ["TabName"]                = new[] { "超链接", "Hyperlinks" },
             ["GroupName"]              = new[] { "超链接工具", "Hyperlink Tools" },
             ["RemovePage"]             = new[] { "移除本页超链接", "Remove Page Links" },
             ["RemovePageScreen"]       = new[] { "移除当前页面的自动超链接", "Remove auto-converted hyperlinks from the current page" },

@@ -197,19 +197,6 @@ namespace OneNoteHyperlinkRemover
         public bool GetClipboardPressed(IRibbonControl control) => _clipboardEnabled;
         public string GetIntervalText(IRibbonControl control) => _autoRemoveInterval.ToString();
 
-        public stdole.IPictureDisp GetButtonImage(IRibbonControl control)
-        {
-            try
-            {
-                using var stream = Assembly.GetExecutingAssembly()
-                    .GetManifestResourceStream("OneNoteHyperlinkRemover.Resources.RemoveLinks_32.png");
-                if (stream != null)
-                    return PictureConverter.Convert(new System.Drawing.Bitmap(stream));
-            }
-            catch { }
-            return null;
-        }
-
         #endregion
 
         #region Auto-remove
@@ -268,18 +255,5 @@ namespace OneNoteHyperlinkRemover
         }
 
         #endregion
-    }
-
-    internal static class PictureConverter
-    {
-        public static stdole.IPictureDisp Convert(System.Drawing.Bitmap bitmap)
-            => (stdole.IPictureDisp)AxHostHelper.GetIPicture(bitmap);
-
-        private class AxHostHelper : AxHost
-        {
-            private AxHostHelper() : base("") { }
-            internal static object GetIPicture(System.Drawing.Image image)
-                => GetIPictureDispFromPicture(image);
-        }
     }
 }

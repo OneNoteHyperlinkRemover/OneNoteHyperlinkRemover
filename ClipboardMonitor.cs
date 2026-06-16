@@ -1,87 +1,87 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace OneNoteHyperlinkRemover
 {
     /// <summary>
-    /// Monitors clipboard changes using SetWinEventHook with EVENT_CLIPBOARD_UPDATE.
-    /// This approach uses a callback function instead of window messages,
-    /// bypassing the message loop issue in COM add-ins.
-    /// Requires Windows 8+.
+    /// Monitors clipboard changes by polling GetClipboardSequenceNumber.
+    /// This is the only approach that works in OneNote COM add-ins because
+    /// OneNote's message loop does not pump messages for windows/hooks
+    /// created by add-ins (AddClipboardFormatListener and SetWinEventHook
+    /// both require a message pump to deliver callbacks).
     /// </summary>
     internal sealed class ClipboardMonitor : IDisposable
     {
-        private const uint EVENT_CLIPBOARD_UPDATE = 0x0701;
-        private const uint WINEVENT_OUTOFCONTEXT = 0x0000;
         private const string ZeroWidthSpace = "​";
 
         [DllImport("user32.dll")]
-        private static extern IntPtr SetWinEventHook(
-            uint eventMin, uint eventMax,
-            IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc,
-            uint idProcess, uint idThread, uint dwFlags);
+        private static extern uint GetClipboardSequenceNumber();
 
-        [DllImport("user32.dll")]
-        private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
-
-        private delegate void WinEventDelegate(
-            IntPtr hWinEventHook, uint eventType,
-            IntPtr hwnd, int idObject, int idChild,
-            uint dwEventThread, uint dwmsEventTime);
-
-        private IntPtr _hook;
-        private WinEventDelegate _delegateRef; // prevent GC from collecting delegate
+        private readonly Thread _thread;
+        private readonly ManualResetEvent _stop = new(false);
+        private uint _lastSeq;
         private string _lastText = "";
         private bool _disposed;
-        private bool _updating; // re-entrancy guard
 
         public ClipboardMonitor()
         {
-            _delegateRef = OnWinEvent;
-            _hook = SetWinEventHook(
-                EVENT_CLIPBOARD_UPDATE, EVENT_CLIPBOARD_UPDATE,
-                IntPtr.Zero, _delegateRef,
-                0, 0, WINEVENT_OUTOFCONTEXT);
-
-            if (_hook == IntPtr.Zero)
-                Log("SetWinEventHook failed!");
-            else
-                Log("ClipboardMonitor started (SetWinEventHook)");
+            _lastSeq = GetClipboardSequenceNumber();
+            _thread = new Thread(MonitorLoop)
+            {
+                IsBackground = true,
+                Name = "ClipboardMonitor"
+            };
+            _thread.Start();
+            Log("ClipboardMonitor started (sequence number polling)");
         }
 
-        private void OnWinEvent(IntPtr hWinEventHook, uint eventType,
-            IntPtr hwnd, int idObject, int idChild,
-            uint dwEventThread, uint dwmsEventTime)
+        private void MonitorLoop()
         {
-            if (eventType != EVENT_CLIPBOARD_UPDATE || _disposed || _updating)
-                return;
-
-            try
+            while (!_stop.WaitOne(300))
             {
-                if (!Clipboard.ContainsText()) return;
-                string text = Clipboard.GetText();
-                if (string.IsNullOrEmpty(text) || text == _lastText) return;
-                _lastText = text;
-
-                if (!text.Contains(ZeroWidthSpace)) return;
-                string cleaned = text.Replace(ZeroWidthSpace, "");
-                if (cleaned == text) return;
-
-                _updating = true;
                 try
                 {
-                    Clipboard.SetText(cleaned);
-                }
-                finally
-                {
-                    _updating = false;
-                }
+                    uint seq = GetClipboardSequenceNumber();
+                    if (seq == _lastSeq) continue;
+                    _lastSeq = seq;
 
-                _lastText = cleaned;
-                Log("CLEANED: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
+                    string text = null;
+                    var readThread = new Thread(() =>
+                    {
+                        try
+                        {
+                            if (Clipboard.ContainsText())
+                                text = Clipboard.GetText();
+                        }
+                        catch { }
+                    });
+                    readThread.SetApartmentState(ApartmentState.STA);
+                    readThread.Start();
+                    readThread.Join(500);
+
+                    if (string.IsNullOrEmpty(text) || text == _lastText) continue;
+                    _lastText = text;
+
+                    if (!text.Contains(ZeroWidthSpace)) continue;
+                    string cleaned = text.Replace(ZeroWidthSpace, "");
+                    if (cleaned == text) continue;
+
+                    var writeThread = new Thread(() =>
+                    {
+                        try { Clipboard.SetText(cleaned); }
+                        catch { }
+                    });
+                    writeThread.SetApartmentState(ApartmentState.STA);
+                    writeThread.Start();
+                    writeThread.Join(500);
+
+                    _lastText = cleaned;
+                    Log("CLEANED: " + cleaned.Substring(0, Math.Min(80, cleaned.Length)));
+                }
+                catch { }
             }
-            catch (Exception ex) { Log("Error: " + ex.Message); }
         }
 
         private static void Log(string msg)
@@ -102,11 +102,9 @@ namespace OneNoteHyperlinkRemover
             if (!_disposed)
             {
                 _disposed = true;
-                if (_hook != IntPtr.Zero)
-                {
-                    UnhookWinEvent(_hook);
-                    _hook = IntPtr.Zero;
-                }
+                _stop.Set();
+                _thread.Join(1000);
+                _stop.Dispose();
                 Log("ClipboardMonitor stopped");
             }
         }
